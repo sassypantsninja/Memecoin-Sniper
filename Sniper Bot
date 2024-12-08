@@ -1,0 +1,90 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+interface IUniswapV2Router {
+    function swapExactETHForTokens(
+        uint256 amountOutMin,
+        address[] calldata path,
+        address to,
+        uint256 deadline
+    ) external payable returns (uint256[] memory amounts);
+
+    function getAmountsOut(uint256 amountIn, address[] calldata path) external view returns (uint256[] memory amounts);
+}
+
+interface IERC20 {
+    function approve(address spender, uint256 amount) external returns (bool);
+    function balanceOf(address account) external view returns (uint256);
+    function transfer(address recipient, uint256 amount) external returns (bool);
+}
+
+contract MemecoinSniper {
+    address public owner;
+    address public routerAddress; // Address of the DEX router (e.g., Uniswap or PancakeSwap)
+    IUniswapV2Router public router;
+
+    modifier onlyOwner() {
+        require(msg.sender == owner, "Not the contract owner");
+        _;
+    }
+
+    constructor(address _routerAddress) {
+        owner = msg.sender;
+        routerAddress = _routerAddress;
+        router = IUniswapV2Router(_routerAddress);
+    }
+
+    // Snipe function to buy tokens
+    function snipeToken(
+        address tokenAddress,
+        uint256 amountOutMin,
+        uint256 deadline
+    ) external payable onlyOwner {
+        require(tokenAddress != address(0), "Invalid token address");
+        require(msg.value > 0, "Must send ETH");
+
+        // Define the swap path: ETH -> Token
+        address;
+        path[0] = router.WETH(); // Native token (ETH/BNB)
+        path[1] = tokenAddress;
+
+        // Perform the swap
+        router.swapExactETHForTokens{value: msg.value}(
+            amountOutMin,
+            path,
+            address(this), // Send tokens to this contract
+            deadline
+        );
+    }
+
+    // Withdraw tokens from the contract
+    function withdrawTokens(address tokenAddress, uint256 amount) external onlyOwner {
+        require(tokenAddress != address(0), "Invalid token address");
+        IERC20(tokenAddress).transfer(owner, amount);
+    }
+
+    // Withdraw ETH from the contract
+    function withdrawETH() external onlyOwner {
+        payable(owner).transfer(address(this).balance);
+    }
+
+    // Helper function to check token balance
+    function getTokenBalance(address tokenAddress) external view returns (uint256) {
+        require(tokenAddress != address(0), "Invalid token address");
+        return IERC20(tokenAddress).balanceOf(address(this));
+    }
+
+    // Helper function to get the estimated output for a given ETH input
+    function getEstimatedTokens(address tokenAddress, uint256 ethAmount) external view returns (uint256) {
+        require(tokenAddress != address(0), "Invalid token address");
+        address;
+        path[0] = router.WETH();
+        path[1] = tokenAddress;
+
+        uint256[] memory amountsOut = router.getAmountsOut(ethAmount, path);
+        return amountsOut[1];
+    }
+
+    // Receive ETH
+    receive() external payable {}
+}
